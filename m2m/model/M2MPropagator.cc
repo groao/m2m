@@ -42,11 +42,11 @@ M2M_PSM_Controller::M2MPropagator::M2MPropagator(M2M_PSM_Controller::M2MContext*
 }
 
 void M2M_PSM_Controller::M2MPropagator::Handle() {
-	cout << "Propagator state " <<endl;
+	//cout << "Propagator state " <<endl;
 	 unsigned int ID_Role[2] = {1,0};
 	_context->set_Role_Id(ID_Role);
 	_context->self_Ass_Pro();
-	 _context->getAddress();
+	_context->getAddress();
 	
 	_context->setState( new M2MIntegrator(_context) );
 	int Resources = _context->getResources();

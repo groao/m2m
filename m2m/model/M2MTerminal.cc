@@ -39,7 +39,7 @@ M2M_PSM_Controller::M2MTerminal::M2MTerminal(M2M_PSM_Controller::M2MContext* con
 }
 
 void M2M_PSM_Controller::M2MTerminal::Handle() {
-	cout << "Terminal state " <<endl;
+	//cout << "Terminal state " <<endl;
 	unsigned int ID_Role[2] = {0,1};
 	_context->set_Role_Id(ID_Role);
 	_context->self_Ass_Ter();

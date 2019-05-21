@@ -46,7 +46,7 @@ void M2M_PSM_Controller::M2MIntegrator::Handle() {
 	unsigned int ID_Role[2] = {1,1};
 	_context->set_Role_Id(ID_Role);
 	_context->self_Ass_Ter();
-	_context->getAddress();
+	//_context->getAddress();
 	
 	 int Resources = _context->getResources();
 	        if (Resources == 0) {

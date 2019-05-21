@@ -40,7 +40,6 @@
 #include "ns3/trace-helper.h"
 #include "ns3/wifi-module.h"
 #include "ns3/olsr-helper.h"
-//#include "ns3/aodv-helper.h"
 #include "ns3/dsdv-module.h"
 #include "ns3/dsr-module.h"
 #include "ns3/ipv4.h"
@@ -59,7 +58,6 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/flow-monitor-module.h"
 #include "ns3/stats-module.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -68,11 +66,6 @@
 #include <vector>
 #include <cstdlib>
 #include <unistd.h>
-//#include <stdlib.h> 
-//#include <stdio.h>
-//#include <math.h> 
-//#include <tgmath.h>
-//#include <cmath>
 
 using namespace ns3;
 using namespace std;
@@ -96,10 +89,12 @@ int main (int argc, char *argv[])
   uint32_t Run = 1;
   uint32_t numNodes = 10; // number of nodes in the network
   uint32_t NumFailureNodes = 0;
-  uint32_t packetSize = 64; // bytes
-  uint32_t flows=4; // number of data flows in the network
-  string animFile = "iterationx.xml";
-  string pcapFile = "iterationx";
+  uint32_t packetSize = 64; // Packet size in bytes
+  uint32_t flows=100; // number of data flows in the network
+  uint32_t traffic = 0;
+  string animFile = "iteration.xml";
+  string pcapFile = "iteration_trace.pcap";
+  string netanimFile = "iterationx.xml";
    
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -119,24 +114,24 @@ int main (int argc, char *argv[])
   cmd.AddValue ("IPv", "IP version", IPv);
   cmd.AddValue ("PacketSize", "Packet size in bytes", packetSize);
   cmd.AddValue ("flows", "Number of traffic flows", flows);
+  cmd.AddValue ("traffic", "Type of traffic", traffic);
   cmd.Parse (argc, argv);
   
   SeedManager::SetSeed (Seed); 
   SeedManager::SetRun (Run); 
-  string FS_String = to_string(FieldSize);
-  
+  string FS_String = to_string(FieldSize);       
   Time interPacketInterval = Seconds (interval);// Convert to time object
   NodeContainer nodes;
   nodes.Create (round(numNodes*PerMobil));
   NodeContainer nodes1;
   nodes1.Create (round(numNodes*(1-PerMobil)));
-  
+
   M2MContext m2mNodes[numNodes];
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //                       MOBILITY MODELS
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+cout << "----------------MOBILITY MODEL--------------------" <<endl;
 MobilityHelper mobility1;
 mobility1.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
                                     "X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=" + FS_String + "]"),
@@ -160,6 +155,7 @@ mobility.SetMobilityModel ("ns3::GaussMarkovMobilityModel",
   "NormalDirection", StringValue ("ns3::NormalRandomVariable[Mean=0.0|Variance=0.2|Bound=0.4]"),
   "NormalPitch", StringValue ("ns3::NormalRandomVariable[Mean=0.0|Variance=0.02|Bound=0.04]"));
 mobility.Install (nodes);
+cout << "GaussMarkov Mobility Model installed on: " << round(numNodes*PerMobil) << " nodes" <<endl;
 } 
 else {
 MobilityHelper mobility;
@@ -174,11 +170,13 @@ mobility.SetMobilityModel ("ns3::RandomWaypointMobilityModel",
                                 "PositionAllocator", PointerValue (PositionAlloc));
 mobility.SetPositionAllocator (PositionAlloc);
 mobility.Install (nodes);
+cout << "RandomWaypoint Mobility Model installed on: " << round(numNodes*PerMobil) << " nodes" <<endl;
 }
 
 NodeContainer allNodes; //Collect all nodes in a single container
 allNodes.Add(nodes); 
 allNodes.Add(nodes1); 
+cout << "---------------------------------------------------" <<endl;
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%                 Channel and network configuration
@@ -196,7 +194,8 @@ allNodes.Add(nodes1);
   //Definition of physical layer (sending-receiving frames)
   YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
   wifiPhy.Set ("RxGain", DoubleValue (-20) ); // Reception gain (dB).
-  wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11_RADIO); // ns-3 supports RadioTap and Prism tracing extensions for 802.11b
+  // ns-3 supports RadioTap and Prism tracing extensions for 802.11b
+  wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11_RADIO); 
 
   //Definition of channel layer (getting signal to all connected physical layer)
   YansWifiChannelHelper wifiChannel;
@@ -214,12 +213,10 @@ allNodes.Add(nodes1);
   
   NetDeviceContainer adhoc;
   adhoc = wifi.Install (wifiPhy, wifiMac, allNodes);
-
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%                  Routing Algorithm - Address Allocation
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 
  Ipv6InterfaceContainer allInterfacesIPv6;
  Ipv4InterfaceContainer allInterfacesIPv4;
  uint32_t IPv6Interface = 1;
@@ -241,7 +238,6 @@ allNodes.Add(nodes1);
  Ipv6InterfaceContainer ifcont = ipv6.Assign (adhoc);
  allInterfacesIPv6.Add(ifcont);
 
- 
  ifcont.SetForwarding (IPv6Interface, true);
  ifcont.SetDefaultRouteInAllNodes (0);
 /*
@@ -254,10 +250,9 @@ int32_t ifIndex = 0;
 ifIndex = ipv6proto->GetInterfaceForDevice (device);
 Ipv6InterfaceAddress ipv6Addr = Ipv6InterfaceAddress (Ipv6Address ("2001:db8:f00d:cafe::42"), Ipv6Prefix (64));
 ipv6proto->AddAddress (ifIndex, ipv6Addr);
-  */
+//*/
 } 
-else {
-  
+ else {
   // Add IPv4
   InternetStackHelper internet;
   
@@ -279,15 +274,14 @@ else {
  // Set up the actual simulation
  //Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 }
-
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//%                        Random Traffic- (Poisson Model)
+//%                        TRAFFIC MODEL
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+cout << "---------------------TRAFFIC MODEL------------------" <<endl;
 ostringstream stringRate;
-stringRate <<packetSize;
+stringRate << packetSize;
 
-/*
 int min = 0;
 int max = allNodes.GetN(); //-1;
 Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
@@ -302,8 +296,49 @@ while(sink==source){
     sink=x->GetValue ();
     }
 
-  if (IPv == true){
-    
+unsigned int Prob = 0; 
+Ptr<NormalRandomVariable> m = CreateObject<NormalRandomVariable> ();
+m->SetAttribute ("Mean", DoubleValue (3.5));
+m->SetAttribute ("Variance", DoubleValue (1.0));
+ 
+Ptr<ExponentialRandomVariable> n = CreateObject<ExponentialRandomVariable> ();
+n->SetAttribute ("Mean", DoubleValue (3.5));
+n->SetAttribute ("Bound", DoubleValue (7.0));
+ 
+Ptr<GammaRandomVariable> o = CreateObject<GammaRandomVariable> ();
+o->SetAttribute ("Alpha", DoubleValue (1.8));
+o->SetAttribute ("Beta", DoubleValue (1.8));
+ 
+Ptr<UniformRandomVariable> p = CreateObject<UniformRandomVariable> ();
+p->SetAttribute ("Min", DoubleValue (0));
+p->SetAttribute ("Max", DoubleValue (7));
+ 
+///*
+switch ( traffic ) {
+case 0:
+  Prob = m->GetValue ();
+  cout << "----------NORMAL DISTRIBUTED----------------------" <<endl;
+  break;
+case 1:
+  Prob = n->GetValue ();
+  cout << "-------------POISSON TRAFFIC----------------------" <<endl;
+  break;
+case 2:  
+  Prob = o->GetValue ();
+  cout << "--------------SELF-SIMILAR------------------------" <<endl;
+  break;
+default:
+  Prob = p->GetValue ();
+  cout << "--------------UNIFORM-----------------------------" <<endl;
+  break;
+}//*/
+ 
+ uint32_t psize[8] = {32,64,128,256,512,1024,2048,4096};
+ packetSize = psize[Prob];
+ stringRate.str("");
+ stringRate << packetSize;
+ cout << "PacketSize="<< packetSize << endl;
+ if (IPv == true){
   OnOffHelper onoff("ns3::UdpSocketFactory",Inet6SocketAddress (allInterfacesIPv6.GetAddress (source, IPv6Interface), i+9));
   //cout << "SourAddress="<<allInterfacesIPv6.GetAddress (source, IPv6Interface) << " Port="<<i+9 <<endl;
   //cout << "SinkAddress="<<allInterfacesIPv6.GetAddress (sink, IPv6Interface) << " Port="<<i+9 <<endl;
@@ -317,8 +352,7 @@ while(sink==source){
   temp.Start (Seconds (5.0));    
   temp.Stop (Seconds (totalTime));
   }
-  else{
-    
+ else{
   OnOffHelper onoff("ns3::UdpSocketFactory",InetSocketAddress (allInterfacesIPv4.GetAddress (source), i+9));
   //cout << "SourAddress="<<allInterfacesIPv4.GetAddress (source) << " Port="<<i+9 <<endl;
   //cout << "SinkAddress="<<allInterfacesIPv4.GetAddress (sink) << " Port="<<i+9 <<endl;
@@ -333,16 +367,15 @@ while(sink==source){
   temp.Stop (Seconds (totalTime));
   }
 }
-*/
-
+cout << "---------------------------------------------------" <<endl;
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%                        MANET DYNAMICS
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-cout << "---------M2M PSM DYNAMICS------------------" <<endl;
+cout << "---------------------M2M DYNAMICS------------------" <<endl;
 // Uniform Random Failure Distributions ----------------------------------------
-  uint32_t FailureNode = 0;
-  uint32_t FailureTime = 0;
+uint32_t FailureNode = 0;
+uint32_t FailureTime = 0;
   
 for (uint32_t i = 0; i < NumFailureNodes; ++i)
  { 
@@ -379,404 +412,16 @@ for (uint32_t i = 0; i < NumFailureNodes; ++i)
     Simulator::Schedule (Seconds (FailureTime+30),&Ipv4::SetUp,ipv4, ipv4ifIndex);
     } 
  }
-// Uniform Random Resources Distribution ---------------------------------------
+///*
+for (uint32_t i = 0; i < numNodes; ++i)
+ {
+      Ptr<Node> n = allNodes.Get (i);
+      Ptr<Ipv6> ipv6 = n->GetObject<Ipv6> ();
+      Ipv6InterfaceAddress iaddr = ipv6->GetAddress (1,IPv6Interface);
+      cout << "IP_="<<iaddr <<endl;
+ }//*/
   
-  /*
-  NodeContainer Propagator;
-  NodeContainer Integrator;
-  NodeContainer Terminal;
-  uint32_t ProbTerminal = 0;
-  uint32_t ProbPropagator = 0;
-  uint32_t ProbIntegrator = 0;
-  
-  for (uint32_t i = 0; i < numNodes; ++i)
-    {
-      Ptr<UniformRandomVariable> z = CreateObject<UniformRandomVariable> ();
-      z->SetAttribute ("Min", DoubleValue (0));
-      z->SetAttribute ("Max", DoubleValue (3));
-      uint32_t Prob = z->GetValue ();
-      switch ( Prob )  
-      {  
-         case 0:  
-            Terminal.Add (allNodes.Get(i));
-            m2mNodes[i].setResources(1);
-            ProbTerminal++;
-            break;  
-         case 1:  
-            Propagator.Add (allNodes.Get(i));
-            m2mNodes[i].setResources(2);
-            ProbPropagator++;
-            break;  
-         default:  
-            Integrator.Add (allNodes.Get(i));
-            m2mNodes[i].setResources(3);
-            ProbIntegrator++;
-      }  
-    }
-   */ 
-/*  
-// Uniform Random REDUNDANCY Distribution --------------------------------------
-  NodeContainer RED2;
-  NodeContainer RED4;
-  NodeContainer RED6;
-  NodeContainer RED10;
-  NodeContainer RED18;
-  NodeContainer RED31;
-  NodeContainer RED55;
-  NodeContainer RED98;
-  
-  uint32_t ProbRED2 = 0;
-  uint32_t ProbRED4 = 0;
-  uint32_t ProbRED6 = 0;
-  uint32_t ProbRED10 = 0;
-  uint32_t ProbRED18 = 0;
-  uint32_t ProbRED31 = 0;
-  uint32_t ProbRED55 = 0;
-  uint32_t ProbRED98 = 0;
-
-  unsigned int Red2[3] = {0,0,0};
-  unsigned int Red4[3] = {0,0,1};
-  unsigned int Red6[3] = {0,1,0};
-  unsigned int Red10[3] = {0,1,1};
-  unsigned int Red18[3] = {1,0,0};
-  unsigned int Red31[3] = {1,0,1};
-  unsigned int Red55[3] = {1,1,0};
-  unsigned int Red98[3] = {1,1,1};
-  
-  for (uint32_t i = 0; i < numNodes; ++i)
-    {
-      Ptr<UniformRandomVariable> z = CreateObject<UniformRandomVariable> ();
-      z->SetAttribute ("Min", DoubleValue (0));
-      z->SetAttribute ("Max", DoubleValue (8));
-      uint32_t Prob = z->GetValue ();
-      switch ( Prob )  
-      {  
-         case 0:  
-            RED2.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red2);
-            ProbRED2++;
-            break;  
-         case 1:  
-            RED4.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red4);
-            ProbRED4++;
-            break;  
-         case 2:  
-            RED6.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red6);
-            ProbRED6++;
-            break;
-         case 3:  
-            RED10.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red10);
-            ProbRED10++;
-            break;
-         case 4:  
-            RED18.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red18);
-            ProbRED18++;
-            break;
-         case 5:  
-            RED31.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red31);
-            ProbRED31++;
-            break;
-         case 6:  
-            RED55.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red55);
-            ProbRED55++;
-            break;
-         default:  
-            RED98.Add (allNodes.Get(i));
-            m2mNodes[i].set_Redu_Id(Red98);
-            ProbRED98++;
-      }  
-    }
-  // Uniform Random Application Distribution -----------------------------------
-  NodeContainer OTHERS;
-  NodeContainer IT_NET;
-  NodeContainer SURVEI;
-  NodeContainer EMERGE;
-  NodeContainer TRACKI;
-  NodeContainer RET_STO;
-  NodeContainer RET_HOS;
-  NodeContainer TRA_VEH;
-  NodeContainer TRA_NNV;
-  NodeContainer IND_DIS;
-  NodeContainer RES_AUT;
-  NodeContainer AGRICU;
-  NodeContainer HEALTH;
-  NodeContainer ENERGY;
-  NodeContainer HOME_AU;
-  NodeContainer ENTERT;
-  
-  uint32_t ProbOTHERS = 0;
-  uint32_t ProbIT_NET = 0;
-  uint32_t ProbSURVEI = 0;
-  uint32_t ProbEMERGE = 0;
-  uint32_t ProbTRACKI = 0;
-  uint32_t ProbRET_STO = 0;
-  uint32_t ProbRET_HOS = 0;
-  uint32_t ProbTRA_VEH = 0;
-  uint32_t ProbTRA_NNV = 0;
-  uint32_t ProbIND_DIS = 0;
-  uint32_t ProbRES_AUT = 0;
-  uint32_t ProbAGRICU = 0;
-  uint32_t ProbHEALTH = 0;
-  uint32_t ProbENERGY = 0;
-  uint32_t ProbHOME_AU = 0;
-  uint32_t ProbENTERT = 0;
-  
-  unsigned int ID_others[4] = {0,0,0,0};
-  unsigned int ID_it_net[4] = {0,0,0,1};
-  unsigned int ID_survei[4] = {0,0,1,0};
-  unsigned int ID_emerge[4] = {0,0,1,1};
-  unsigned int ID_tracki[4] = {0,1,0,0};
-  unsigned int ID_retsto[4] = {0,1,0,1};
-  unsigned int ID_rethos[4] = {0,1,1,0};
-  unsigned int ID_traveh[4] = {0,1,1,1};
-  unsigned int ID_trannv[4] = {1,0,0,0};
-  unsigned int ID_inddis[4] = {1,0,0,1};
-  unsigned int ID_resaut[4] = {1,0,1,0};
-  unsigned int ID_agricu[4] = {1,0,1,1};
-  unsigned int ID_health[4] = {1,1,0,0};
-  unsigned int ID_energy[4] = {1,1,0,1};
-  unsigned int ID_homeau[4] = {1,1,1,0};
-  unsigned int ID_entert[4] = {1,1,1,1};
-    
-  for (uint32_t i = 0; i < numNodes; ++i)
-    {
-      Ptr<UniformRandomVariable> z = CreateObject<UniformRandomVariable> ();
-      z->SetAttribute ("Min", DoubleValue (0));
-      z->SetAttribute ("Max", DoubleValue (16));
-      uint32_t Prob = z->GetValue ();
-      switch ( Prob )  
-      {   
-         case 0:  
-            OTHERS.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_others);
-            ProbOTHERS++;
-            break;  
-         case 1:  
-            IT_NET.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_it_net);
-            ProbIT_NET++;
-            break;  
-         case 2:  
-            SURVEI.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_survei);
-            ProbSURVEI++;
-            break;
-         case 3:  
-            EMERGE.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_emerge);
-            ProbEMERGE++;
-            break;
-         case 4:  
-            TRACKI.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_tracki);
-            ProbTRACKI++;
-            break;
-         case 5:  
-            RET_STO.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_retsto);
-            ProbRET_STO++;
-            break;
-         case 6:  
-            RET_HOS.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_rethos);
-            ProbRET_HOS++;
-            break;
-         case 7:  
-            TRA_VEH.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_traveh);
-            ProbTRA_VEH++;
-            break;
-         case 8:  
-            TRA_NNV.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_trannv);
-            ProbTRA_NNV++;
-            break;
-         case 9:  
-            IND_DIS.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_inddis);
-            ProbIND_DIS++;
-            break;
-         case 10:  
-            RES_AUT.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_resaut);
-            ProbRES_AUT++;
-            break;
-         case 11:  
-            AGRICU.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_agricu);
-            ProbAGRICU++;
-            break;
-         case 12:  
-            HEALTH.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_health);
-            ProbHEALTH++;
-            break;
-         case 13:  
-            ENERGY.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_energy);
-            ProbENERGY++;
-            break;
-         case 14:  
-            HOME_AU.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_homeau);
-            ProbHOME_AU++;
-            break;
-         default:  
-            ENTERT.Add (allNodes.Get(i));
-            m2mNodes[i].set_Appl_Id(ID_entert);
-            ProbENTERT++;
-      }  
-    }
-// Uniform Random KIND OF DEVICE Distribution ----------------------------------
-  NodeContainer OTHER;
-  NodeContainer TAG;
-  NodeContainer PUMP;
-  NodeContainer MOTOR;
-  NodeContainer VALVE;
-  NodeContainer ALARM;
-  NodeContainer SEN_IM;
-  NodeContainer SEN_EN;
-  NodeContainer SEN_SE;
-  NodeContainer SEN_WE;
-  NodeContainer GENER;
-  NodeContainer ACTUA;
-  NodeContainer VEHIC;
-  NodeContainer LIGHT;
-  NodeContainer BATTE;
-  NodeContainer FUELC;
-  
-  uint32_t ProbOTHER = 0;
-  uint32_t ProbTAG = 0;
-  uint32_t ProbPUMP = 0;
-  uint32_t ProbMOTOR = 0;
-  uint32_t ProbVALVE = 0;
-  uint32_t ProbALARM = 0;
-  uint32_t ProbSEN_IM = 0;
-  uint32_t ProbSEN_EN = 0;
-  uint32_t ProbSEN_SE = 0;
-  uint32_t ProbSEN_WE = 0;
-  uint32_t ProbGENER = 0;
-  uint32_t ProbACTUA = 0;
-  uint32_t ProbVEHIC = 0;
-  uint32_t ProbLIGHT = 0;
-  uint32_t ProbBATTE = 0;
-  uint32_t ProbFUELC = 0;
-  
-  unsigned int ID_other[4] = {0,0,0,0};
-  unsigned int ID_tag__[4] = {0,0,0,1};
-  unsigned int ID_pump_[4] = {0,0,1,0};
-  unsigned int ID_motor[4] = {0,0,1,1};
-  unsigned int ID_valve[4] = {0,1,0,0};
-  unsigned int ID_alarm[4] = {0,1,0,1};
-  unsigned int ID_senim[4] = {0,1,1,0};
-  unsigned int ID_senen[4] = {0,1,1,1};
-  unsigned int ID_sense[4] = {1,0,0,0};
-  unsigned int ID_senwe[4] = {1,0,0,1};
-  unsigned int ID_gener[4] = {1,0,1,0};
-  unsigned int ID_actua[4] = {1,0,1,1};
-  unsigned int ID_vehic[4] = {1,1,0,0};
-  unsigned int ID_light[4] = {1,1,0,1};
-  unsigned int ID_batte[4] = {1,1,1,0};
-  unsigned int ID_fuelc[4] = {1,1,1,1};
-  
-  for (uint32_t i = 0; i < numNodes; ++i)
-    {
-      Ptr<UniformRandomVariable> z = CreateObject<UniformRandomVariable> ();
-      z->SetAttribute ("Min", DoubleValue (0));
-      z->SetAttribute ("Max", DoubleValue (16));
-      uint32_t Prob = z->GetValue ();
-      switch ( Prob )  
-      {  
-         case 0:  
-            OTHER.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_other);
-            ProbOTHER++;
-            break;  
-         case 1:  
-            TAG.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_tag__);
-            ProbTAG++;
-            break;  
-         case 2:  
-            PUMP.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_pump_);
-            ProbPUMP++;
-            break;
-         case 3:  
-            MOTOR.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_motor);
-            ProbMOTOR++;
-            break;
-         case 4:  
-            VALVE.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_valve);
-            ProbVALVE++;
-            break;
-         case 5:  
-            ALARM.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_alarm);
-            ProbALARM++;
-            break;
-         case 6:  
-            SEN_IM.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_senim);
-            ProbSEN_IM++;
-            break;
-         case 7:  
-            SEN_EN.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_senen);
-            ProbSEN_EN++;
-            break;
-         case 8:  
-            SEN_SE.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_sense);
-            ProbSEN_SE++;
-            break;
-         case 9:  
-            SEN_WE.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_senwe);
-            ProbSEN_WE++;
-            break;
-         case 10:  
-            GENER.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_gener);
-            ProbGENER++;
-            break;
-         case 11:  
-            ACTUA.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_actua);
-            ProbACTUA++;
-            break;
-         case 12:  
-            VEHIC.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_vehic);
-            ProbVEHIC++;
-            break;
-         case 13:  
-            LIGHT.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_light);
-            ProbLIGHT++;
-            break;
-         case 14:  
-            BATTE.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_batte);
-            ProbBATTE++;
-            break;
-         default:  
-            FUELC.Add (allNodes.Get(i));
-            m2mNodes[i].set_Devi_Id(ID_fuelc);
-            ProbFUELC++;
-      }
-    }
-*/
-  
-  if (IPv == true){
+if (IPv == true){
     for (uint32_t i = 0; i < numNodes; ++i)
     {    
     M2MHelper m2mtest("ns3::UdpSocketFactory",Inet6SocketAddress (allInterfacesIPv6.GetAddress (i, IPv6Interface), i+9));
@@ -791,7 +436,7 @@ for (uint32_t i = 0; i < NumFailureNodes; ++i)
     m2mtemp.Stop (Seconds (totalTime));
     }
   }
-    else{
+else{
     for (uint32_t i = 0; i < numNodes; ++i)
     { 
     M2MHelper m2mtest("ns3::UdpSocketFactory",InetSocketAddress (allInterfacesIPv4.GetAddress (i), i+9));
@@ -806,94 +451,57 @@ for (uint32_t i = 0; i < NumFailureNodes; ++i)
     m2mtemp.Stop (Seconds (totalTime)); 
     }    
   }
-
+cout << "---------------------------------------------------" <<endl;
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//%                        Tracing and Visualization
+//%                        TRACING
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  wifiPhy.EnablePcap (pcapFile, adhoc); // Tracing
-  //wifiPhy.EnablePcapAll (pcapFile); // Tracing
-  AsciiTraceHelper ascii;
-  Ptr<OutputStreamWrapper> stream = ascii.CreateFileStream (pcapFile+".tr");
-  wifiPhy.EnableAsciiAll (stream);
-   
+//wifiPhy.EnablePcap (pcapFile, adhoc); // Tracing
+//wifiPhy.EnablePcapAll (pcapFile); // Tracing
+//AsciiTraceHelper ascii;
+//Ptr<OutputStreamWrapper> stream = ascii.CreateFileStream (pcapFile+".tr");
+//wifiPhy.EnableAsciiAll (stream);
+  
+// Flow monitor
+Ptr<FlowMonitor> flowMonitor;
+FlowMonitorHelper flowHelper;
+flowMonitor = flowHelper.InstallAll();
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%                        CUSTOM VISUALIZATION
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  AnimationInterface anim (animFile);   // XML animation file generation
-  /*
-  uint32_t resourceId[5];
-  resourceId[0] = anim.AddResource ("/home/groao/Desktop/NS-3/Pruebas/Images/integrator.png");
-  resourceId[1] = anim.AddResource ("/home/groao/Desktop/NS-3/Pruebas/Images/propagator.png");
-  resourceId[2] = anim.AddResource ("/home/groao/Desktop/NS-3/Pruebas/Images/terminal_voltage.png");
-  resourceId[3] = anim.AddResource ("/home/groao/Desktop/NS-3/Pruebas/Images/terminal_temperature.png");
-  resourceId[4] = anim.AddResource ("/home/groao/Desktop/NS-3/Pruebas/Images/terminal_speed.png");
-  */
-  /*
-    for (uint32_t i = 0; i < Terminal.GetN(); ++i)
-    {
-        uint32_t IdTerminal = Terminal.Get(i)->GetId();
-        //anim.UpdateNodeImage (IdTerminal, resourceId[(rand() % 3) + 2]);
-        anim.UpdateNodeSize (IdTerminal, 20, 20);
-        anim.UpdateNodeColor (IdTerminal, 255, 0, 0);
-    }  
+/*
+AnimationInterface anim (netanimFile);   // XML animation file generation
+anim.SetBackgroundImage ("Images/background.jpg", 0, 0, 0.5, 0.5, 0.9); //(PWD,X,Y,ESX,ESY,OPAC)
+anim.EnablePacketMetadata (); // Optional
+
+uint32_t resourceId[5];
+resourceId[0] = anim.AddResource ("Images/integrator.png");
+resourceId[1] = anim.AddResource ("Images/propagator.png");
+resourceId[2] = anim.AddResource ("Images/terminal_voltage.png");
+resourceId[3] = anim.AddResource ("Images/terminal_temperature.png");
+resourceId[4] = anim.AddResource ("Images/terminal_speed.png");
+resourceId[5] = anim.AddResource ("Images/terminal_humid.png");
+resourceId[6] = anim.AddResource ("Images/terminal_eolic.png");
   
-    for (uint32_t i = 0; i < Propagator.GetN(); ++i)
-    {  
-        uint32_t IdPropagator = Propagator.Get(i)->GetId();
-        //anim.UpdateNodeImage (IdPropagator, resourceId[1]); 
-        anim.UpdateNodeSize (IdPropagator, 20, 20);
-        anim.UpdateNodeColor (IdPropagator, 0, 0, 255);
-    }
-    
-    for (uint32_t i = 0; i < Integrator.GetN(); ++i)
-    {
-        uint32_t IdIntegrator = Integrator.Get(i)->GetId();
-        //anim.UpdateNodeImage (IdIntegrator, resourceId[0]);
-        anim.UpdateNodeSize (IdIntegrator, 20, 20);
-        anim.UpdateNodeColor (IdIntegrator, 0, 255, 0);
-    }     
-  */
-    for (uint32_t i = 0; i < numNodes; ++i)
-    {
-        uint32_t Id = allNodes.Get(i)->GetId();
-        anim.UpdateNodeSize (Id, 20, 20);
-        anim.UpdateNodeColor (Id, 255, 0, 0);
-    } 
-  
-  anim.EnablePacketMetadata (); // Optional
-  //(PWD,X,Y,ESX,ESY,OPAC)
-  anim.SetBackgroundImage ("/home/groao/Desktop/NS-3/Pruebas/Images/background.jpg", 0, 0, 0.5, 0.5, 0.5); 
-  
+for (uint32_t i = 0; i < allNodes.GetN(); ++i)
+{
+    uint32_t IdDevice = allNodes.Get(i)->GetId();
+    anim.UpdateNodeImage (IdDevice, resourceId[0]);
+    anim.UpdateNodeImage (IdDevice, resourceId[1]); 
+    anim.UpdateNodeImage (IdDevice, resourceId[(rand() % 5) + 2]);
+    anim.UpdateNodeSize (IdDevice, 15, 15);
+    //anim.UpdateNodeColor (Id, 255, 0, 0);
+}//*/  
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%                        RUN SIMULATION
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   Simulator::Stop(Seconds(totalTime));  // Simulation time
   Simulator::Run ();
-  /*
-  cout << "---------ROLE DISTRIBUTION-----------------" <<endl;
-  cout << "Termi="<<ProbTerminal << "\t Propa="<<ProbPropagator << "\t Integ="<<ProbIntegrator <<endl;
-  cout << "---------REDUNDANCY DISTRIBUTION-----------" <<endl;
-  cout << "RED2="<<ProbRED2 << " \t RED4="<<ProbRED4 << "  \t RED6="<<ProbRED6 <<endl;
-  cout << "RED10="<<ProbRED10 << "\t RED18="<<ProbRED18 << "\t RED31="<<ProbRED31 <<endl;
-  cout << "RED55="<<ProbRED55 << "\t RED98="<<ProbRED98 <<endl; 
-  cout << "---------APPLICATION DISTRIBUTION----------" <<endl;
-  cout << "OTHERS="<<ProbOTHERS << "\t IT_NET="<<ProbIT_NET << "\t SURVEI="<<ProbSURVEI <<endl;
-  cout << "EMERGE="<<ProbEMERGE << "\t TRACKI="<<ProbTRACKI << "\t RET_STO="<<ProbRET_STO <<endl;
-  cout << "RET_HOS="<<ProbRET_HOS << "\t TRA_VEH="<<ProbTRA_VEH << "\t TRA_NNV="<<ProbTRA_NNV <<endl;
-  cout << "IND_DIS="<<ProbIND_DIS << "\t REA_AUT="<<ProbRES_AUT << "\t AGRICU="<<ProbAGRICU <<endl;
-  cout << "HEALTH="<<ProbHEALTH << "\t ENERGY="<<ProbENERGY << "\t HOME_AU="<<ProbHOME_AU <<endl;
-  cout << "ENTER="<<ProbENTERT <<endl;
-  cout << "---------KIND OF DEVICE DISTRIBUTION-------" <<endl;
-  cout << "OTHER="<<ProbOTHER << "\t TAG="<<ProbTAG << "\t\t PUMP="<<ProbPUMP <<endl;
-  cout << "MOTOR="<<ProbMOTOR << "\t VALVE="<<ProbVALVE << "\t ALARM="<<ProbALARM <<endl;
-  cout << "SEN_IM="<<ProbSEN_IM << " SEN_EN="<<ProbSEN_EN << "\t SEN_SE="<<ProbSEN_SE <<endl;
-  cout << "SEN_WE="<<ProbSEN_WE << " GENER="<<ProbGENER << "\t ACTUA="<<ProbACTUA <<endl;
-  cout << "VEHIC="<<ProbVEHIC << "\t LIGHT="<<ProbLIGHT << "\t BATTE="<<ProbBATTE <<endl;
-  cout << "FUELC="<<ProbFUELC <<endl;
-  */
+  
+  flowMonitor->SerializeToXmlFile(animFile, false, false);
+
   Simulator::Destroy ();
   return 0;
 }

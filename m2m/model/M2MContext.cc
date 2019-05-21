@@ -32,7 +32,6 @@ using namespace ns3;
 #include "M2MTerminal.h"
 #include "M2MPropagator.h"
 #include "M2MIntegrator.h"
-
 #include "M2MContext.h"
 #include "M2MAddress.h"
 #include "M2MState.h"

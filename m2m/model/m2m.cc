@@ -161,15 +161,9 @@ void M2MApplication::StartApplication () // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
   
-// Uniform Random Resources Distribution ---------------------------------------
-  Ptr<UniformRandomVariable> z = CreateObject<UniformRandomVariable> ();
-  z->SetAttribute ("Min", DoubleValue (0));
-  z->SetAttribute ("Max", DoubleValue (3));
-  unsigned int Prob = z->GetValue () + 1;
-  m2mNode.setResources(Prob);  
-
-// Uniform Random Distribution -------------------------------------------------
-  uint8_t Rand = 0 ;
+  // Uniform Random Distribution -------------------------------------------------
+  int dis = 3;
+  unsigned int Prob = 0;
   unsigned int array[3] = {0,0,0};
   unsigned int matrix[8][3] = {
     0,0,0,
@@ -202,14 +196,22 @@ void M2MApplication::StartApplication () // Called at time specified by Start
     1,1,1,0,
     1,1,1,1   
     };
+    
+  if (dis == 1)  {
+// Uniform Random Resources Distribution ---------------------------------------    
+  Ptr<UniformRandomVariable> z = CreateObject<UniformRandomVariable> ();
+  z->SetAttribute ("Min", DoubleValue (0));
+  z->SetAttribute ("Max", DoubleValue (3));
+  Prob = z->GetValue () + 1;
+  m2mNode.setResources(Prob);
 
 // Uniform Random Redundancy Distribution --------------------------------------    
   Ptr<UniformRandomVariable> y = CreateObject<UniformRandomVariable> ();
   y->SetAttribute ("Min", DoubleValue (0));
   y->SetAttribute ("Max", DoubleValue (8));
-  Rand = y->GetValue ();
+  Prob = y->GetValue ();
   for(int i=0; i < 3; i++) {
-    array[i] = matrix[Rand][i]; 
+    array[i] = matrix[Prob][i]; 
   }
   m2mNode.set_Redu_Id(array);
   
@@ -217,9 +219,9 @@ void M2MApplication::StartApplication () // Called at time specified by Start
   Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
   x->SetAttribute ("Min", DoubleValue (0));
   x->SetAttribute ("Max", DoubleValue (16));
-  Rand = x->GetValue ();
+  Prob = x->GetValue ();
   for(int i=0; i < 4; i++) {
-    array1[i] = matrix1[Rand][i]; 
+    array1[i] = matrix1[Prob][i]; 
   }
   m2mNode.set_Appl_Id(array1);
    
@@ -227,13 +229,100 @@ void M2MApplication::StartApplication () // Called at time specified by Start
   Ptr<UniformRandomVariable> w = CreateObject<UniformRandomVariable> ();
   w->SetAttribute ("Min", DoubleValue (0));
   w->SetAttribute ("Max", DoubleValue (16));
-  Rand = w->GetValue ();
+  Prob = w->GetValue ();
   for(int i=0; i < 4; i++) {
-    array2[i] = matrix1[Rand][i]; 
+    array2[i] = matrix1[Prob][i]; 
   }
-  m2mNode.set_Devi_Id(array2);
+  m2mNode.set_Devi_Id(array2); 
   
+  }
+  else if (dis == 2) {
+// Exponential Random Resources Distribution -----------------------------------   
+  Ptr<ExponentialRandomVariable> z = CreateObject<ExponentialRandomVariable> ();
+  z->SetAttribute ("Mean", DoubleValue (1));
+  z->SetAttribute ("Bound", DoubleValue (3));
+  Prob = z->GetValue ()+1;
+  m2mNode.setResources(Prob); 
+  
+// Exponential Random Redundancy Distribution ----------------------------------  
+  Ptr<ExponentialRandomVariable> y = CreateObject<ExponentialRandomVariable> ();
+  y->SetAttribute ("Mean", DoubleValue (5));
+  y->SetAttribute ("Bound", DoubleValue (8));
+  Prob = y->GetValue ();
+  if (Prob > 7){Prob = 7;}
+  for(int i=0; i < 3; i++) {
+    array[i] = matrix[Prob][i]; 
+  }
+  m2mNode.set_Redu_Id(array);
+  
+// Exponential Random Application Distribution ---------------------------------
+  Ptr<ExponentialRandomVariable> x = CreateObject<ExponentialRandomVariable> ();
+  x->SetAttribute ("Mean", DoubleValue (7));
+  x->SetAttribute ("Bound", DoubleValue (16));
+  Prob = x->GetValue ();
+  if (Prob > 15){Prob = 15;}
+  for(int i=0; i < 4; i++) {
+    array1[i] = matrix1[Prob][i]; 
+  }
+  m2mNode.set_Appl_Id(array1);
+   
+// Exponential Random Kind of Device Distribution ------------------------------
+  Ptr<ExponentialRandomVariable> w = CreateObject<ExponentialRandomVariable> ();
+  w->SetAttribute ("Mean", DoubleValue (7));
+  w->SetAttribute ("Bound", DoubleValue (16));
+  Prob = w->GetValue ();
+  if (Prob > 15){Prob = 15;}
+  for(int i=0; i < 4; i++) {
+    array2[i] = matrix1[Prob][i]; 
+  }
+  m2mNode.set_Devi_Id(array2); 
+  
+  }
+  else {
+  Ptr<GammaRandomVariable> z = CreateObject<GammaRandomVariable> ();
+  z->SetAttribute ("Alpha", DoubleValue (1.7));
+  z->SetAttribute ("Beta", DoubleValue (0.5));
+  Prob = z->GetValue ()+1;
+  m2mNode.setResources(Prob); 
+  
+// Gamma Random Redundancy Distribution --------------------------------------       
+  Ptr<GammaRandomVariable> y = CreateObject<GammaRandomVariable> ();
+  y->SetAttribute ("Alpha", DoubleValue (4));
+  y->SetAttribute ("Beta", DoubleValue (0.8));
+  Prob = y->GetValue ();
+  if (Prob > 7){Prob = 7;}
+  for(int i=0; i < 3; i++) {
+    array[i] = matrix[Prob][i]; 
+  }
+  m2mNode.set_Redu_Id(array);
+  
+// Gamma Random Application Distribution -------------------------------------
+  Ptr<GammaRandomVariable> x = CreateObject<GammaRandomVariable> ();
+  x->SetAttribute ("Alpha", DoubleValue (10));
+  x->SetAttribute ("Beta", DoubleValue (0.8));
+  Prob = x->GetValue ();
+  if (Prob > 15){Prob = 15;}
+  for(int i=0; i < 4; i++) {
+    array1[i] = matrix1[Prob][i]; 
+  }
+  m2mNode.set_Appl_Id(array1);
+   
+// Gamma Random Kind of Device Distribution ----------------------------------
+  Ptr<GammaRandomVariable> w = CreateObject<GammaRandomVariable> ();
+  w->SetAttribute ("Alpha", DoubleValue (10));
+  w->SetAttribute ("Beta", DoubleValue (0.8));
+  Prob = w->GetValue ();
+  if (Prob > 15){Prob = 15;}
+  for(int i=0; i < 4; i++) {
+    array2[i] = matrix1[Prob][i]; 
+  }
+  m2mNode.set_Devi_Id(array2); 
+  
+  }
+  
+  //cout <<"Resources node: " <<m2mNode.getResources () << endl;
   m2mNode.Handle();
+           
   // Create the socket if not already
   if (!m_socket)
     {
@@ -363,10 +452,9 @@ void M2MApplication::SendPacket ()
 {
   NS_LOG_FUNCTION (this);
  
-  m2mNode.getAddress();
+  //m2mNode.getAddress();
   NS_ASSERT (m_sendEvent.IsExpired ());
-  
-  
+    
   Ptr<Packet> packet1 = Create<Packet> (4);
   M2MHeader m2mHeader;
   m2mHeader.SetSelfIds(m2mNode.get_Byte1());
@@ -377,14 +465,12 @@ void M2MApplication::SendPacket ()
   m_txTrace (packet1);
   m_socket->Send (packet1);
   m_totBytes += m_pktSize;
-  
-  
+    
   Ptr<Packet> packet = Create<Packet> (m_pktSize);
   m_txTrace (packet);
   m_socket->Send (packet);
   m_totBytes += m_pktSize;
-  
-  
+    
   if (InetSocketAddress::IsMatchingType (m_peer))
     {
       NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
@@ -401,7 +487,7 @@ void M2MApplication::SendPacket ()
                    <<  packet->GetSize () << " bytes to "
                    << Inet6SocketAddress::ConvertFrom(m_peer).GetIpv6 ()
                    << " port " << Inet6SocketAddress::ConvertFrom (m_peer).GetPort ()
-                   << " total Tx " << m_totBytes << " bytes");
+                   << " total Tx " << m_totBytes << " bytes" << packet1);
     }
   m_lastStartTime = Simulator::Now ();
   m_residualBits = 0;

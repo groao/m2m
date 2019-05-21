@@ -52,24 +52,25 @@ void M2M_PSM_Controller::M2MAddress::getAddress() {
 	  unsigned int prov_Add[32] = {0};
 	    int i=0,j=0,k=0,l=0,m=0,n=0;
 	    
-            for (i=0; i<4; i++){
-	    	prov_Add[i] = Appl_Id[i];
-	    }
-	        
-	    for (i=4; i<8; i++){
-	    	prov_Add[i] = Devi_Id[j];
-	    	j++;
-	    }
-	    for (i=8; i<10; i++){
+            for (i=0; i<2; i++){
 	    	prov_Add[i] = Role_Id[k];
                 k++;
 	    }
 	    
-	    for (i=10; i<13; i++){
+	    for (i=2; i<5; i++){
 	    	prov_Add[i] = Redu_Id[l];
 	    	l++;
 	    }
-	    
+            
+            for (i=5; i<9; i++){
+	    	prov_Add[i] = Appl_Id[i];
+	    }
+	        
+	    for (i=9; i<13; i++){
+	    	prov_Add[i] = Devi_Id[j];
+	    	j++;
+	    }
+            
 	    for (i=13; i<24; i++){
 	    	prov_Add[i] = SelfAdd[m];
 	    	m++;
@@ -80,8 +81,8 @@ void M2M_PSM_Controller::M2MAddress::getAddress() {
 	    	n++;
 	    }
 	    
-	    cout << "m2m Address: " <<endl;
-	    cout << "-Ai|-Di|R|Ri|--11 Self-|-8 Prop|" <<endl;
+	    cout << "m2mAddress:R|Ri|-Ai|-Di|--11 Self-|-8 Prop|" <<endl;
+            cout << "ID_Address=";
 	    for (i=0; i<32; i++){
 	         cout << prov_Add[i] ;
 	    }
