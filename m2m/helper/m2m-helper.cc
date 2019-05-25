@@ -1,24 +1,28 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 //
-// Copyright (c) 2018 National University of Colombia
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-//* published by the Free Software Foundation;
+// A module for create by Virtualization TLON Distributed System
+// Copycenter (C) 2019
+// Giuseppe Roa Osorio <groao@unal.edu.co>
+// Grupo de investigación TLÖN
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// GNU Lesser Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: Giuseppe Roa Osorio<groao@unal.edu.co>
+// You should have received a copy of the GNU Lesser Public License
+// along with this program.  If not, see [http://www.gnu.org/licenses/].
 
-// ns3 - M2M Protocol
-// Giuseppe Roa Osorio, National University of Colombia, 2018
+//__author__ = "Giuseppe Roa Osorio"
+//__copyright__ = "Copyright 2019, TLON group"
+//__license__ = "LGPL"
+//__version__ = "1"
+//__email__ = "groao@unal.edu.co"
+//__status__ = "Development"
 
 #include "m2m-helper.h"
 #include "ns3/inet-socket-address.h"
